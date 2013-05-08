@@ -28,6 +28,7 @@ class Metricize
   end
 
   def prepare_metric(name, value, options)
+    raise RuntimeError, "#{self.class} server not running; try calling start on the instance first" unless @thread
     log_message "preparing metric: #{name}:#{value}"
     options.merge(:name         => @prefix + '.' + name,
                   :value        => value,

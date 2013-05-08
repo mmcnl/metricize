@@ -26,6 +26,12 @@ describe Metricize do
     metrics.send!
   end
 
+  it "raises an error if client methods are called when the server is not running" do
+    metrics.stop
+    expect { metrics.increment('boom') }.to raise_error(RuntimeError, /server not running/)
+    expect { metrics.measure('boom', 1) }.to raise_error(RuntimeError, /server not running/)
+  end
+
   it "sends after waiting for the send interval to elapse" do
     RestClient.should_receive(:post)
     metrics.measure('value_stat', 777)
