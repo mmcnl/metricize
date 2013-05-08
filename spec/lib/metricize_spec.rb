@@ -17,11 +17,6 @@ describe Metricize do
     Timecop.return
   end
 
-  it "provides a sensible default send interval" do
-    metrics =  Metricize.new(password: 'api_key', username: 'name@example.com', prefix: 'host')
-    expect(metrics.instance_variable_get("@send_interval")).to eq(60.0)
-  end
-
   it "properly uses the remote API to send stats" do
     api_url= "https://name%40example.com:api_key@metrics-api.librato.com/v1/metrics"
     post_data= /{"counters":\[{"name":"host.stat.name","value":1,"measure_time":1234,"source":"my_source"}/

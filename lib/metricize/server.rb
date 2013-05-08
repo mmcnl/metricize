@@ -1,10 +1,4 @@
-require 'thread'
-require 'rest-client'
-require 'json'
-
 class Metricize
-
-  ### server fuctionality ###
 
   def initialize(options)
     @password      = options.fetch(:password)
@@ -37,7 +31,7 @@ class Metricize
     process_metric_queue
   end
 
-  private ### server functionality ####
+  private
 
   def reset_queue
     @queue = { :gauges => [], :counters => [] }
