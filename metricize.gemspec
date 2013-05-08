@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.version       = Metricize::VERSION
   spec.authors       = ["Matt McNeil"]
   spec.email         = ["mmcneil@liveworld.com"]
-  spec.description   = %q{TODO: Write a gem description}
-  spec.summary       = %q{TODO: Write a gem summary}
+  spec.description   = %q{Simple in-memory server to receive metrics, aggregate them, and periodically send them to a stats service}
+  spec.summary       = %q{Collects and periodically sends metrics to a stats service}
   spec.homepage      = ""
   spec.license       = "MIT"
 
@@ -20,4 +20,10 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency "bundler", "~> 1.3"
   spec.add_development_dependency "rake"
+  spec.add_development_dependency "rspec"
+  spec.add_development_dependency "timecop"
+
+  spec.add_runtime_dependency "rest-client"
+  spec.add_runtime_dependency "json"
+
 end

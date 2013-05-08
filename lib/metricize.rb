@@ -1,5 +1,3 @@
 require "metricize/version"
-
-module Metricize
-  # Your code goes here...
-end
+require "metricize/server"
+require "metricize/client"
