@@ -20,23 +20,23 @@ class Metricize
   private
 
   def enqueue_count(name, count, options)
-    push_to_queue(:counters, prepare_metric(name, count, options))
+    push_to_queue(prepare_metric(name + '.count', count, options))
   end
 
   def enqueue_value(name, value, options)
-    push_to_queue(:gauges, prepare_metric(name, (value*100.0).round / 100.0, options))
+    raise ArgumentError, "no numeric value provided in measure call" unless value.kind_of?(Numeric)
+    push_to_queue(prepare_metric(name, (value*100.0).round / 100.0, options))
   end
 
   def prepare_metric(name, value, options)
     raise RuntimeError, "#{self.class} server not running; try calling start on the instance first" unless @thread
-    log_message "preparing metric: #{name}:#{value}"
-    options.merge(:name         => @prefix + '.' + name,
-                  :value        => value,
-                  :measure_time => Time.now.to_i)
+    log_message "preparing metric: #{name}:#{value}:#{options}"
+    options.merge(:name  => @prefix + '.' + name,
+                  :value => value)
   end
 
-  def push_to_queue(type, metric)
-    @queue[type] << metric
+  def push_to_queue(metric)
+    @queue << metric
   end
 
   def time_delta_ms(start_time)

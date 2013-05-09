@@ -34,7 +34,7 @@ class Metricize
   private
 
   def reset_queue
-    @queue = { :gauges => [], :counters => [] }
+    @queue = []
   end
 
   def wait_for_clients_to_send_metrics
@@ -43,7 +43,7 @@ class Metricize
 
   def process_metric_queue
     log_message "checking queue"
-    return if (@queue[:gauges].empty? && @queue[:counters].empty?)
+    return if @queue.empty?
 
     store_metrics(add_aggregate_info(@queue.clone))
     reset_queue
@@ -57,36 +57,36 @@ class Metricize
   end
 
   def store_metrics(data)
-    log_message "sending {counters: #{@queue[:counters].size} gauges: #{@queue[:gauges].size}}", :info
+    log_message "sending #{@queue.size}", :info
     log_message "sending: #{data}"
     start_time = Time.now
     RestClient.post("https://#{@username}:#{@password}@#{@remote_url}",
                     data.to_json,
-                    :timeout      => @timeout,
-                    :content_type => 'application/json')
+                      :timeout      => @timeout,
+                      :content_type => 'application/json')
     log_message "request completed in #{time_delta_ms(start_time)}ms"
   end
 
-  def add_aggregate_info(data)
-   counters = consolidate_counts(data[:counters].clone)
-   data = { :gauges => add_value_stats(data[:gauges].clone, counters)}
-   data.merge!(:counters => counters)
-   data.delete_if {|k,v| v.empty? }
+  def add_aggregate_info(metrics)
+    counters, measurements = metrics.partition {|metric| metric.fetch(:name) =~ /.count$/ }
+    counters = consolidate_counts(counters)
+    measurements = add_value_stats(measurements)
+    { :gauges => counters + measurements, :measure_time => Time.now.to_i }
   end
 
   def consolidate_counts(counters)
     aggregated_counts = {}
     counters.each_with_index do |metric,i|
-      key = [metric.fetch(:name), metric[:source]].join('|') # temporarily group by name+source
+      # collect aggregate stats for each name+source combination
+      key = [metric.fetch(:name), metric[:source]].join('|')
       aggregated_counts[key] = aggregated_counts[key].to_i + metric[:value]
-      counters[i] = nil # set consolidated stat to nil for removal later via compact
     end
     aggregated_counts.map do | key, count |
-      add_stat_by_key(key, count)
+      add_stat_by_key(key, count).merge(:attributes => {:source_aggregate => true})
     end
   end
 
-  def add_value_stats(gauges, counters)
+  def add_value_stats(gauges)
     value_groups = {}
     gauges.each do | metric |
       key = [metric.fetch(:name), metric[:source]].join('|')
@@ -94,11 +94,10 @@ class Metricize
       value_groups[key] << metric[:value]
     end
     value_groups.each do |key, values|
-      counters << add_stat_by_key(key, values.size, '.count')
+      gauges << add_stat_by_key(key, values.size, '.count')
       gauges << add_stat_by_key(key, values.max, ".max")
       gauges << add_stat_by_key(key, values.min, ".min")
-      gauges << add_stat_by_key(key, calculate_percentile(values, 0.5), ".median")
-      [0.95, 0.90, 0.75].each do |p|
+      [0.25, 0.50, 0.75, 0.95].each do |p|
         percentile = calculate_percentile(values, p)
         gauges << add_stat_by_key(key, percentile, ".#{(p*100).to_i}e")
       end
@@ -107,11 +106,10 @@ class Metricize
   end
 
   def add_stat_by_key(key, value, suffix = "")
-      metric = { :name         => key.split('|')[0] + suffix,
-                 :value        => value,
-                 :measure_time => Time.now.to_i }
-      metric.merge!(:source => key.split('|')[1]) if key.split('|')[1]
-      metric
+    metric = { :name         => key.split('|')[0] + suffix,
+               :value        => value }
+    metric.merge!(:source => key.split('|')[1]) if key.split('|')[1]
+    metric
   end
 
   def calculate_percentile(values, percentile)
