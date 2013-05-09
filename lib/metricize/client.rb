@@ -31,8 +31,11 @@ class Metricize
   def prepare_metric(name, value, options)
     raise RuntimeError, "#{self.class} server not running; try calling start on the instance first" unless @thread
     log_message "preparing metric: #{name}:#{value}:#{options}"
-    options.merge(:name  => @prefix + '.' + name,
-                  :value => value)
+    options.merge(:name  => build_metric_name(name), :value => value)
+  end
+
+  def build_metric_name(name)
+    @prefix + '.' + name.strip.downcase.gsub(' ', '_').gsub(/[^a-z0-9._]/, '')
   end
 
   def push_to_queue(metric)

@@ -56,6 +56,12 @@ describe Metricize do
     metrics.send!
   end
 
+  it "removes special characters and spaces and converts the metric name to dotted decimal snake_case" do
+    metrics.increment(' My UNRULY stat.name!@#$%^&*\(\) ')
+    RestClient.should_receive(:post).with(anything, /my_unruly_stat.name/, anything)
+    metrics.send!
+  end
+
   it "sends all stats in a batch with the same timestamp" do
     metrics.measure('value1', 5)
     RestClient.should_receive(:post).with(anything, /measure_time":1234}/, anything)
