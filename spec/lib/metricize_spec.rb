@@ -56,9 +56,18 @@ describe Metricize do
     metrics.send!
   end
 
-  it "removes special characters and spaces and converts the metric name to dotted decimal snake_case" do
-    metrics.increment(' My UNRULY stat.name!@#$%^&*\(\) ')
-    RestClient.should_receive(:post).with(anything, /my_unruly_stat.name/, anything)
+  it "removes special characters and spaces and converts the metric names and sources to dotted decimal snake_case" do
+    metrics.increment(' My UNRULY stat!@#$%^&*\(\) ')
+    RestClient.should_receive(:post).with(anything, /my_unruly_stat/, anything)
+    metrics.send!
+    metrics.increment('test', :source => ' My UNRULY source!@#$%^&*\(\) ')
+    RestClient.should_receive(:post).with(anything, /my_unruly_source/, anything)
+    metrics.send!
+  end
+
+  it "converts passed in objects to string before using them as metric or source names" do
+    metrics.increment(Numeric, :source => Integer)
+    RestClient.should_receive(:post).with(anything, /host.numeric.count.*source":"integer"/, anything)
     metrics.send!
   end
 
