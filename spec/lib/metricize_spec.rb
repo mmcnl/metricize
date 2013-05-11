@@ -107,9 +107,9 @@ describe Metricize do
     expect { metrics.measure('boom', 'N') }.to raise_error(ArgumentError, /no numeric value provided in measure call/)
   end
 
-  it "rounds values stats to 2 decimals" do
-    metrics.measure('value1', 3.3333333)
-    RestClient.should_receive(:post).with(anything, /value1","value":3.33/, anything)
+  it "rounds value stats to 4 decimals" do
+    metrics.measure('value1', 1.0/7.0)
+    RestClient.should_receive(:post).with(anything, /value1","value":0.1429\}/, anything)
     metrics.send!
   end
 
