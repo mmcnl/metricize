@@ -82,7 +82,8 @@ class Metricize
       aggregated_counts[key] = aggregated_counts[key].to_i + metric[:value]
     end
     aggregated_counts.map do | key, count |
-      add_stat_by_key(key, count).merge(:attributes => {:source_aggregate => true})
+      counter_attributes = { :attributes => {:source_aggregate => true, :summarize_function => 'sum'} }
+      add_stat_by_key(key, count).merge(counter_attributes)
     end
   end
 

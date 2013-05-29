@@ -88,7 +88,7 @@ describe Metricize do
     metrics.increment('counter1')
     metrics.increment('counter1', by: 5)
     RestClient.should_receive(:post).with(anything,
-                                          /counter1.count","value":6.*aggregate/,
+                                          /counter1.count","value":6.*source_aggregate":true,"summarize_function":"sum"/,
                                           anything)
     metrics.send!
   end
