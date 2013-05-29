@@ -94,7 +94,8 @@ class Metricize
       value_groups[key] << metric[:value]
     end
     value_groups.each do |key, values|
-      gauges << add_stat_by_key(key, values.size, '.count').merge(:attributes => {:source_aggregate => true})
+      counter_attributes = { :attributes => {:source_aggregate => true, :summarize_function => 'sum'} }
+      gauges << add_stat_by_key(key, values.size, '.count').merge(counter_attributes)
       gauges << add_stat_by_key(key, values.max, ".max")
       gauges << add_stat_by_key(key, values.min, ".min")
       [0.25, 0.50, 0.75, 0.95].each do |p|

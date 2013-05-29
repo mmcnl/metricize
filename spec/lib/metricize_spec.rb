@@ -125,7 +125,7 @@ describe Metricize do
 
     it "asks for server aggregation on the count of value stats" do
       metrics.measure('value_stat1', 7)
-      expected_output = /value_stat1.count","value":1,"attributes":{"source_aggregate":true}/
+      expected_output = /value_stat1.count","value":1,"attributes":{"source_aggregate":true,"summarize_function":"sum"}/
       RestClient.should_receive(:post).with(anything, expected_output, anything)
       metrics.send!
     end
