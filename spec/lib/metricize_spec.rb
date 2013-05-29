@@ -123,6 +123,12 @@ describe Metricize do
       metrics.send!
     end
 
+    it "asks for server aggregation on the count of value stats" do
+      metrics.measure('value_stat1', 7)
+      expected_output = /value_stat1.count","value":1,"attributes":{"source_aggregate":true}/
+      RestClient.should_receive(:post).with(anything, expected_output, anything)
+      metrics.send!
+    end
     it "adds percentile stats for each value stat" do
       (1..20).each { |value| metrics.measure('value_stat1', value) }
       metrics.measure('value_stat2', 7)
