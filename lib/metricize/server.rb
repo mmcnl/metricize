@@ -1,13 +1,14 @@
 class Metricize
 
   def initialize(options)
-    @password      = options.fetch(:password)
-    @username      = options.fetch(:username).sub('@','%40')
-    @prefix        = options.fetch(:prefix)
-    @send_interval = (options[:send_interval] || 60).to_f
-    @logger        = options[:logger]         || Logger.new(STDOUT)
-    @remote_url    = options[:remote_url]     || 'metrics-api.librato.com/v1/metrics'
-    @timeout       = options[:timeout]        || 5
+    @password          = options.fetch(:password)
+    @username          = options.fetch(:username).sub('@','%40')
+    @prefix            = options.fetch(:prefix)
+    @send_interval     = (options[:send_interval]    || 60).to_f
+    @logger            = options[:logger]            || Logger.new(STDOUT)
+    @default_log_level = options[:default_log_level] || 'debug'
+    @remote_url        = options[:remote_url]        || 'metrics-api.librato.com/v1/metrics'
+    @timeout           = options[:timeout]           || 5
   end
 
   def start
@@ -51,9 +52,9 @@ class Metricize
     log_message "Error: " + e.message, :error
   end
 
-  def log_message(message, level = :debug)
+  def log_message(message, level = @default_log_level)
     message = "[Metricize #{Process.pid}] " + message
-    @logger.send(level, message)
+    @logger.send(level.to_sym, message)
   end
 
   def store_metrics(data)
