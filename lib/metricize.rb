@@ -35,15 +35,13 @@ module Metricize
   end
 
   class NullClient
-    def self.initialize(*args); end
     def self.increment(*args); end
     def self.measure(*args); end
     def self.time(*args); yield; end
   end
+
   class NullServer
-    def self.initialize(*args); end
     def self.start; end
-    def self.stop; end
     def self.send!; end
   end
 
