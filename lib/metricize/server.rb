@@ -43,13 +43,13 @@ module Metricize
 
     def retrieve_queue_contents
       log_message "checking queue"
-      queue = @redis.lrange(REDIS_QUEUE_NAME, 0, -1)
+      queue = @redis.lrange(@queue_name, 0, -1)
       queue.map {|metric| JSON.parse(metric, :symbolize_names => true) }
     end
 
     def clear_queue
       log_message "clearing queue"
-      @redis.del REDIS_QUEUE_NAME
+      @redis.del @queue_name
     end
 
     def store_metrics(data)

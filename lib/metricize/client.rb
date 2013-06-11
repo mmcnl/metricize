@@ -41,7 +41,7 @@ module Metricize
       data = prepare_metric(name, value, options).to_json
       log_message "redis_data_sent='#{data}'"
       start_time = Time.now
-      @redis.lpush(REDIS_QUEUE_NAME, data)
+      @redis.lpush(@queue_name, data)
       log_message "redis_request_duration_ms=#{time_delta_ms(start_time)}"
     end
 
