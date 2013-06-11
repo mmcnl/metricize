@@ -5,7 +5,6 @@ describe Metricize do
   let(:server) { Metricize::Server.new( :password          => 'api_key',
                                         :username          => 'name@example.com',
                                         :logger            => logger,
-                                        :default_log_level => 'debug',
                                         :flush_interval    => 0.5 ) }
 
   let(:client) { Metricize::Client.new( :prefix => 'host', :logger => logger ) }
@@ -20,7 +19,7 @@ describe Metricize do
     Timecop.return
   end
 
-  it "provides null object implementations to allow for easily disabling metric sending" do
+  it "provides null object implementations to allow for easily disabling metrics functionality" do
     expect(Metricize::NullClient).to respond_to(:new, :increment, :measure, :time)
     expect(Metricize::NullServer).to respond_to(:new, :start, :send!)
   end
