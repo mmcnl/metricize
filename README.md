@@ -18,11 +18,15 @@ Or install it yourself as:
 
 ## Usage
 
-    # start server (eg from config/initializers/metrics.rb)
-    METRICS = Metricize.new(password: 'api_key',
-                            username: 'name@example.com',
-                            prefix:   'host')
-    METRICS.start
+    # start server in its own Ruby process (eg using lib/tasks/metrics.rake)
+    Metricize::Server.new(username: 'name@example.com', password: 'api_key').start
+
+    # start appropriate client (eg from config/initializers/metrics.rb)
+    if Rails.env == 'production'
+      METRICS = Metricize::Client.new
+    else
+      METRICS = Metricize::NullClient
+    end
 
     # use client interface to send metrics from the app
     METRICS.increment('content_post.make') # increment by default value of 1
@@ -31,18 +35,7 @@ Or install it yourself as:
     METRICS.time('facebook.request_content') do  # record the execution time of a slow block
       # make API call...
     end
-    METRICS.measure('stat', 45, source: 'walmart') # break out stat by subgrouping
-
-  Command line examples:
-
-    $ METRICS_ENABLED=1 METRICS_INTERVAL=10 bin/rails server # start with metrics enabled in development
-
-  Using metrics from within a Rails console:
-
-    $ METRICS_ENABLED=1 bin/rails console
-    Loading development environment (Rails 4.0.0.beta1)
-    irb(main):001:0> METRICS.increment('testing')
-    irb(main):002:0> METRICS.send!
+    METRICS.measure('stat', 45, source: 'my_source') # break out stat by subgrouping
 
 ## Contributing
 
