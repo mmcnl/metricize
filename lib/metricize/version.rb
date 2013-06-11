@@ -1,3 +1,3 @@
-class Metricize
-  VERSION = "0.0.7"
+module Metricize
+  VERSION = "0.1.0"
 end
