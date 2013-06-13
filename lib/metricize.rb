@@ -18,8 +18,12 @@ module Metricize
       @queue_host  = options[:queue_host] || '127.0.0.1'
       @queue_port  = options[:queue_port] || 6379
       @queue_name  = options[:queue_name] || 'metricize_queue'
+
       log_message "connecting to Redis at #{@queue_host}:#{@queue_port}:#{@queue_name}", :info
-      @redis = Redis.new(:host => @queue_host, :port => @queue_port)
+      # don't use Redis.new to avoid issues when reconnecting (eg during Unicorn prefork reset)
+      #  see http://stackoverflow.com/questions/10922197/resque-is-not-picking-up-redis-configuration-settings
+      @redis = Redis.connect(:host => @queue_host, :port => @queue_port)
+
       log_message "queue_name=#{@queue_name}, queue_length=#{@redis.llen(@queue_name)}"
     end
 
