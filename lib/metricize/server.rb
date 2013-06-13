@@ -69,6 +69,7 @@ module Metricize
       counters, measurements = metrics.partition {|metric| metric.fetch(:name) =~ /.count$/ }
       counters = consolidate_counts(counters)
       measurements = add_value_stats(measurements)
+      measurements << add_stat_by_key(@queue_name + '.counters', counters.size)
       { :gauges => counters + measurements, :measure_time => Time.now.to_i }
     end
 
@@ -80,9 +81,12 @@ module Metricize
         aggregated_counts[key] = aggregated_counts[key].to_i + metric[:value]
       end
       aggregated_counts.map do | key, count |
-        counter_attributes = { :attributes => {:source_aggregate => true, :summarize_function => 'sum'} }
         add_stat_by_key(key, count).merge(counter_attributes)
       end
+    end
+
+    def counter_attributes
+      { :attributes => {:source_aggregate => true, :summarize_function => 'sum'} }
     end
 
     def add_value_stats(gauges)
@@ -93,7 +97,6 @@ module Metricize
         value_groups[key] << metric[:value]
       end
       value_groups.each do |key, values|
-        counter_attributes = { :attributes => {:source_aggregate => true, :summarize_function => 'sum'} }
         gauges << add_stat_by_key(key, values.size, '.count').merge(counter_attributes)
         gauges << add_stat_by_key(key, values.max, ".max")
         gauges << add_stat_by_key(key, values.min, ".min")
@@ -102,6 +105,7 @@ module Metricize
           gauges << add_stat_by_key(key, percentile, ".#{(p*100).to_i}e")
         end
       end
+      gauges << add_stat_by_key(@queue_name + '.measurements', value_groups.size)
       gauges
     end
 

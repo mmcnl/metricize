@@ -7,16 +7,18 @@ describe Metricize do
                                         :logger            => logger,
                                         :flush_interval    => 0.5 ) }
 
-  let(:client) { Metricize::Client.new( :prefix => 'host', :logger => logger ) }
+  let(:client) { Metricize::Client.new( :prefix => 'prefix', :logger => logger ) }
 
   before do
     Timecop.freeze(Time.at(1234))
     RestClient.stub(:post)
-    Thread.new { server.start }
+    @thread = Thread.new { server.start }
   end
 
   after do
     Timecop.return
+    @thread.kill
+    server.send(:clear_queue)
   end
 
   it "provides null object implementations to allow for easily disabling metrics functionality" do
@@ -29,7 +31,7 @@ describe Metricize do
     RestClient.should_receive(:post).with do | api_url, post_data, request_params |
       expect(api_url).to eq("https://name%40example.com:api_key@metrics-api.librato.com/v1/metrics")
       first_gauge = JSON.parse(post_data)['gauges'].first
-      expect(first_gauge['name']).to eq "host.stat.name.count"
+      expect(first_gauge['name']).to eq "prefix.stat.name.count"
       expect(first_gauge['source']).to eq "my_source"
       expect(first_gauge['attributes']).to eq("source_aggregate" => true, "summarize_function" => "sum")
       expect(request_params).to eq( :timeout => 10, :content_type => "application/json" )
@@ -73,7 +75,7 @@ describe Metricize do
   it "converts passed in objects to string before using them as metric or source names" do
     client.increment(Numeric, :source => Integer)
     RestClient.should_receive(:post).with do | _, post_data |
-      expect(post_data).to match( /host.numeric.count/ )
+      expect(post_data).to match( /prefix.numeric.count/ )
       expect(post_data).to match( /source":"integer"/ )
     end
     server.send!
@@ -96,7 +98,7 @@ describe Metricize do
     client.increment('counter1', :by => 5)
     RestClient.should_receive(:post).with do | _, post_data |
       expect(post_data).to match( /"value":6/ )
-      expect(post_data).to match( /"name":"host.counter1.count"/ )
+      expect(post_data).to match( /"name":"prefix.counter1.count"/ )
       expect(post_data).to match( /source_aggregate":true/ )
       expect(post_data).to match( /summarize_function":"sum"/ )
     end
@@ -105,11 +107,11 @@ describe Metricize do
 
   it "aggregates requests from multiple clients" do
     client.increment('counter1')
-    client2 = Metricize::Client.new( :prefix => 'host', :logger => logger )
+    client2 = Metricize::Client.new( :prefix => 'prefix', :logger => logger )
     client2.increment('counter1', :by => 5)
     RestClient.should_receive(:post).with do | _, post_data |
       expect(post_data).to match( /"value":6/ )
-      expect(post_data).to match( /"name":"host.counter1.count"/ )
+      expect(post_data).to match( /"name":"prefix.counter1.count"/ )
     end
     server.send!
   end
@@ -154,6 +156,26 @@ describe Metricize do
       server.send!
     end
 
+    it "adds min, max, and count" do
+      [4,5,6].each { |value| client.measure('value1', value) }
+      RestClient.should_receive(:post).with do | url, post_data |
+        expect(post_data).to match( /value1.min","value":4.0/ )
+        expect(post_data).to match( /value1.max","value":6.0/ )
+        expect(post_data).to match( /value1.count","value":3/ )
+      end
+      server.send!
+    end
+
+    it "adds metadata about the stats" do
+      (1..4).each { |index| client.measure("value_stat#{index}", 0) }
+      (1..7).each { |index| client.increment("counter_stat#{index}") }
+      RestClient.should_receive(:post).with do | url, post_data |
+        expect(post_data).to match( /metricize_queue.measurements","value":4/ )
+        expect(post_data).to match( /metricize_queue.counters","value":7/ )
+      end
+      server.send!
+    end
+
     it "adds percentile stats for each value stat" do
       (1..20).each { |value| client.measure('value_stat1', value) }
       client.measure('value_stat2', 7)
@@ -174,7 +196,7 @@ describe Metricize do
     end
     RestClient.should_receive(:post).with do | _, post_data |
       first_gauge = JSON.parse(post_data)['gauges'].first
-      expect(first_gauge['name']).to eq('host.my_slow_code.time')
+      expect(first_gauge['name']).to eq('prefix.my_slow_code.time')
       expect(first_gauge['value']).to be_within(0.2).of(5000)
     end
     server.send!
