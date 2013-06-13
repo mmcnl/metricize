@@ -23,7 +23,13 @@ Or install it yourself as:
 
     # start appropriate client (eg from config/initializers/metrics.rb)
     if Rails.env == 'production'
-      METRICS = Metricize::Client.new
+      client_config = { prefix:     "app_name.#{Rails.env}",
+                        queue_host: 'localhost',
+                        queue_name: "app_name.#{Rails.env}.metrics_queue",
+                        logger:     Rails.logger }
+
+      METRICS = Metricize::Client.new(client_config)
+
     else
       METRICS = Metricize::NullClient
     end
