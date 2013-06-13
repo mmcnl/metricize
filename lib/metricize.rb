@@ -7,8 +7,8 @@ require 'logger'
 require 'redis'
 
 module Metricize
-
   module SharedMethods
+
     def establish_redis_connection
       log_message "connecting to Redis at #{@queue_host}:#{@queue_port}:#{@queue_name}", :info
       @redis = Redis.connect(:host => @queue_host, :port => @queue_port)
@@ -17,15 +17,15 @@ module Metricize
 
     private
 
-    def establish_logger(options)
-      @logger            = options[:logger]            || Logger.new(STDOUT)
-      @default_log_level = options[:default_log_level] || 'debug'
-    end
-
     def initialize_redis(options)
       @queue_host  = options[:queue_host] || '127.0.0.1'
       @queue_port  = options[:queue_port] || 6379
       @queue_name  = options[:queue_name] || 'metricize_queue'
+    end
+
+    def establish_logger(options)
+      @logger            = options[:logger]            || Logger.new(STDOUT)
+      @default_log_level = options[:default_log_level] || 'debug'
     end
 
     def log_message(message, level = @default_log_level)

@@ -1,6 +1,7 @@
 module Metricize
   class Server
     include Metricize::SharedMethods
+
     def initialize(options)
       @remote_url        = options[:remote_url]        || 'metrics-api.librato.com/v1/metrics'
       @password          = options.fetch(:password)
@@ -14,7 +15,7 @@ module Metricize
     end
 
     def start
-      log_message "starting Metricize server", :info
+      log_message "Metricize server started", :info
       loop do
         wait_for_clients_to_send_metrics
         process_metric_queue
