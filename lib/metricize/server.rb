@@ -9,7 +9,8 @@ module Metricize
       @timeout           = options[:timeout]           || 10
       @logger            = options[:logger]            || Logger.new(STDOUT)
       @default_log_level = options[:default_log_level] || 'debug'
-      establish_redis_connection(options)
+      initialize_redis(options)
+      establish_redis_connection
     end
 
     def start

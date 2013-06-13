@@ -5,7 +5,8 @@ module Metricize
     def initialize(options = {})
       @prefix = options[:prefix]
       establish_logger(options)
-      establish_redis_connection(options)
+      initialize_redis(options)
+      establish_redis_connection
     end
 
     def increment(name, options = {})
