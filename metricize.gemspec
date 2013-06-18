@@ -28,5 +28,6 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency "rest-client"
   spec.add_runtime_dependency "json"
   spec.add_runtime_dependency "redis"
+  spec.add_runtime_dependency "ascii_charts"
 
 end

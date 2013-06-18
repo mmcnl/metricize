@@ -5,6 +5,7 @@ require 'rest-client'
 require 'json'
 require 'logger'
 require 'redis'
+require 'ascii_charts'
 
 module Metricize
   module SharedMethods

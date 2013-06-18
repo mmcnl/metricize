@@ -1,7 +1,7 @@
 require "spec_helper"
 
 describe Metricize do
-  let(:logger) { Logger.new("/dev/null") }
+  let(:logger) { double.as_null_object }
   let(:server) { Metricize::Server.new( :password          => 'api_key',
                                         :username          => 'name@example.com',
                                         :logger            => logger,
@@ -185,6 +185,22 @@ describe Metricize do
         expect(post_data).to match( /value_stat1.95e","value":19.0/ )
         expect(post_data).to match( /value_stat2.25e","value":7.0/ )
       end
+      server.send!
+    end
+
+    it "logs a histogram for value stats with more than 5 measurements" do
+      [10,10,15,15,15,19].each { |value| client.measure('value_stat1', value) }
+      logger.should_receive(:info)
+      logger.should_receive(:info)
+      logger.should_receive(:info) do | output |
+        #3|          *
+        #2| *        *
+        #1| *        *     *
+        #0+------------------
+        #  10 12 13 15 16 18
+        expect(output).to match(/10 12 13 15/)
+      end
+      logger.stub(:info)
       server.send!
     end
 
