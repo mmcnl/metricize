@@ -166,7 +166,7 @@ describe Metricize do
       server.send!
     end
 
-    it "adds metadata about the stats" do
+    it "adds metadata about the entire batch of stats" do
       (1..4).each { |index| client.measure("value_stat#{index}", 0) }
       (1..7).each { |index| client.increment("counter_stat#{index}") }
       RestClient.should_receive(:post).with do | url, post_data |

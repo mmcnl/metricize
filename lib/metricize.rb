@@ -10,9 +10,9 @@ module Metricize
   module SharedMethods
 
     def establish_redis_connection
-      log_message "connecting to Redis at #{@queue_host}:#{@queue_port}:#{@queue_name}", :info
+      log_message "connecting to Redis at #{@queue_host}:#{@queue_port}", :info
       @redis = Redis.connect(:host => @queue_host, :port => @queue_port)
-      log_message "queue_name=#{@queue_name}, queue_length=#{@redis.llen(@queue_name)}"
+      log_message "queue_name=#{@queue_name}, queue_length=#{@redis.llen(@queue_name)}", :info
     end
 
     private
