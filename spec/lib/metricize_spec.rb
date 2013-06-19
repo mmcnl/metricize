@@ -227,4 +227,3 @@ describe Metricize do
   end
 
 end
-

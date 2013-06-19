@@ -97,7 +97,7 @@ module Metricize
         value_groups[key] << metric[:value]
       end
       value_groups.each do |key, values|
-        print_bar_chart(key, values)
+        print_histogram(key, values)
         gauges << add_stat_by_key(key, values.size, '.count').merge(counter_attributes)
         gauges << add_stat_by_key(key, values.max, ".max")
         gauges << add_stat_by_key(key, values.min, ".min")
@@ -110,18 +110,20 @@ module Metricize
       gauges
     end
 
-    def print_bar_chart(name, values)
+    def print_histogram(name, values)
       min = values.min.floor
       max = values.max.ceil
       range = (max - min).to_f
       num_bins = [25, values.size].min.to_f
       bin_width = (range/num_bins)
       return if (range == 0 || bin_width == 0 || values.size < 5 )
+      name = name.gsub('|','.')
       bins = (min...max).step(bin_width).to_a
       freqs = bins.map {| bin | values.select{|x| x >= bin && x <= (bin+bin_width) }.count }
       mean = values.inject(:+).to_f / values.size
       mean = ((mean * 10.0).round) / 10.0
-      chart_output = "\n\n#{name}.count=#{values.count}\n#{name}.min=#{values.min}\n#{name}.max=#{values.max}\n#{name}.mean=#{mean}"
+      chart_output = "\n\n#{name}.count=#{values.count}\n#{name}.min=#{values.min}\n#{name}.max=#{values.max}\n#{name}.mean=#{mean}".gsub('..','.')
+
       chart_data = bins.map!(&:round).zip(freqs)
 
       chart_output << AsciiCharts::Cartesian.new(chart_data, :bar => true, :hide_zero => true).draw
