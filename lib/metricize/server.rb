@@ -111,12 +111,15 @@ module Metricize
     end
 
     def print_histogram(name, values)
+      return if values.size < 5
       min = values.min.floor
       max = values.max.ceil
       range = (max - min).to_f
       num_bins = [25, values.size].min.to_f
       bin_width = (range/num_bins)
-      return if (range == 0 || bin_width == 0 || values.size < 5 )
+      if (range == 0 || bin_width == 0  )
+        raise "unable to calculate binning"
+      end
       name = name.gsub('|','.')
       bins = (min...max).step(bin_width).to_a
       freqs = bins.map {| bin | values.select{|x| x >= bin && x <= (bin+bin_width) }.count }

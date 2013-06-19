@@ -204,6 +204,18 @@ describe Metricize do
       server.send!
     end
 
+    it "doesn't log a histogram for value stats with less than 5 measurements" do
+      [10,10,15].each { |value| client.measure('value_stat1', value) }
+      logger.should_receive(:info).exactly(3).times
+      server.send!
+    end
+
+    it "logs a warning if it can't calculate histogram binning" do
+      [10,10,10,10,10,10].each { |value| client.measure('value_stat1', value) }
+      logger.should_receive(:error)
+      server.send!
+    end
+
   end
 
   it "times and reports the execution of a block of code in milliseconds" do
