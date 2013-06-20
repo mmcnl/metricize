@@ -34,8 +34,7 @@ module Metricize
 
     def enqueue_value(name, value, options)
       raise ArgumentError, "no numeric value provided in measure call" unless value.kind_of?(Numeric)
-      value = (value*10000.0).round / 10000.0
-      push_to_queue(build_metric_name(name), value, options)
+      push_to_queue(build_metric_name(name), round(value, 4), options)
     end
 
     def push_to_queue(name, value, options)

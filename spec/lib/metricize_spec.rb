@@ -175,6 +175,12 @@ describe Metricize do
       forwarder.go!
     end
 
+    it "calculates standard deviation and mean" do
+      values = [1,2,3,4,5,6].extend(Metricize::Stats)
+      expect(values.mean).to eq(3.5)
+      expect(values.standard_deviation).to be_within(0.01).of(1.87083)
+    end
+
     it "adds percentile stats for each value stat" do
       (1..20).each { |value| client.measure('value_stat1', value) }
       client.measure('value_stat2', 7)
@@ -196,14 +202,15 @@ describe Metricize do
       #2| *        *
       #1| *        *     *
       #0+------------------
-       # 10 12 13 15 16 18
-      logger.should_receive(:info).with(/10 12 13 15 16 18/m)
+       # 10 11 13 14 16 17
+      logger.should_receive(:info).with(/10 11 13 14 16 17/m)
       forwarder.go!
     end
 
     it "doesn't log a histogram for value stats with less than 5 measurements" do
       [10,10,15].each { |value| client.measure('value_stat1', value) }
-      logger.should_receive(:info).exactly(3).times
+      2.times { logger.should_receive(:info) }
+      logger.should_not_receive(:info).with(/Histogram/)
       forwarder.go!
     end
 

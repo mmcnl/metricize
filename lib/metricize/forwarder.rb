@@ -7,7 +7,7 @@ module Metricize
       @username          = options.fetch(:username)
       @remote_url        = options[:remote_url]     || 'metrics-api.librato.com/v1/metrics'
       @remote_timeout    = options[:remote_timeout] || 10
-      @logger            = options[:logger]         || Logger.new(STDOUT)
+      establish_logger(options)
       initialize_redis(options)
     end
 
@@ -86,7 +86,7 @@ module Metricize
         gauges << add_stat_by_key(key, values.max, ".max")
         gauges << add_stat_by_key(key, values.min, ".min")
         [0.25, 0.50, 0.75, 0.95].each do |p|
-          percentile = calculate_percentile(values, p)
+          percentile = values.extend(Stats).calculate_percentile(p)
           gauges << add_stat_by_key(key, percentile, ".#{(p*100).to_i}e")
         end
       end
@@ -96,31 +96,27 @@ module Metricize
 
     def print_histogram(name, values)
       return if values.size < 5
-      min = values.min.floor
-      max = values.max.ceil
-      range = (max - min).to_f
 
       num_bins = [25, values.size].min.to_f
-      bin_width = (range/num_bins)
+      bin_width = (values.max - values.min)/num_bins
       bin_width = 1 if bin_width == 0
 
-      bins = (min...max).step(bin_width).to_a
+      bins = (values.min...values.max).step(bin_width).to_a
       freqs = bins.map {| bin | values.select{|x| x >= bin && x <= (bin+bin_width) }.count }
-
-      mean = values.inject(:+).to_f / values.size
-      mean = ((mean * 10.0).round) / 10.0
 
       name = name.gsub('|','.').sub(/\.$/, '')
 
-      chart_data    = bins.map!(&:round).zip(freqs)
+      values.extend(Stats)
+      chart_data    = bins.map!(&:floor).zip(freqs)
       chart_options = { :bar       => true,
                         :title     => "\nHistogram for #{name} at #{Time.now}",
                         :hide_zero => true }
       chart_output  = AsciiCharts::Cartesian.new(chart_data, chart_options).draw +
-                     "\n#{name}.count=#{values.count}\n" +
-                       "#{name}.min=#{values.min}\n" +
-                       "#{name}.max=#{values.max}\n" +
-                       "#{name}.mean=#{mean}\n"
+                       "\n#{name}.count=#{values.count}\n" +
+                       "#{name}.min=#{round(values.min, 2)}\n" +
+                       "#{name}.max=#{round(values.max, 2)}\n" +
+                       "#{name}.mean=#{round(values.mean, 2)}\n" +
+                       "#{name}.stddev=#{round(values.standard_deviation, 2)}\n"
       log_message(chart_output, :info)
     rescue => e
       log_message("#{e}: Could not print histogram for #{name} with these input values: #{values.inspect}", :error)
