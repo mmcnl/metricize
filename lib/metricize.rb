@@ -11,9 +11,9 @@ module Metricize
   module SharedMethods
 
     def establish_redis_connection
-      log_message "connecting to Redis at #{@queue_host}:#{@queue_port}", :info
+      log_message "metricize_version=#{VERSION} connecting to Redis at #{@queue_host}:#{@queue_port}", :info
       @redis = Redis.connect(:host => @queue_host, :port => @queue_port)
-      log_message "metricize_version=#{VERSION}, queue_name=#{@queue_name}, queue_length=#{@redis.llen(@queue_name)}", :info
+      @redis.ping
     end
 
     private
@@ -29,7 +29,7 @@ module Metricize
       @default_log_level = options[:default_log_level] || 'debug'
     end
 
-    def log_message(message, level = @default_log_level)
+    def log_message(message, level = :debug)
       message = "[#{self.class} #{Process.pid}] " + message
       @logger.send(level.to_sym, message)
     end
@@ -47,12 +47,11 @@ module Metricize
     def self.establish_redis_connection; end
   end
 
-  class NullServer
-    def self.start; end
-    def self.send!; end
+  class NullForwarder
+    def self.go!; end
   end
 
 end
 
-require "metricize/server"
+require "metricize/forwarder"
 require "metricize/client"

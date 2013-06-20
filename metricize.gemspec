@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.version       = Metricize::VERSION
   spec.authors       = ["Matt McNeil"]
   spec.email         = ["mmcneil@liveworld.com"]
-  spec.description   = %q{Simple in-memory server to receive metrics, aggregate them, and periodically send them to a stats service}
-  spec.summary       = %q{Collects and periodically sends metrics to a stats service}
+  spec.description   = %q{Simple client/forwarder system to aggregate metrics and periodically send them to a stats service}
+  spec.summary       = %q{Collect, aggregate, and send metrics to a stats service}
   spec.homepage      = ""
   spec.license       = "MIT"
 

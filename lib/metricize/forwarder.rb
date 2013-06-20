@@ -1,38 +1,22 @@
 module Metricize
-  class Server
+  class Forwarder
     include Metricize::SharedMethods
 
     def initialize(options)
-      @remote_url        = options[:remote_url]        || 'metrics-api.librato.com/v1/metrics'
       @password          = options.fetch(:password)
-      @username          = options.fetch(:username).sub('@','%40')
-      @flush_interval    = (options[:flush_interval]   || 60).to_f
-      @timeout           = options[:timeout]           || 10
-      @logger            = options[:logger]            || Logger.new(STDOUT)
-      @default_log_level = options[:default_log_level] || 'debug'
+      @username          = options.fetch(:username)
+      @remote_url        = options[:remote_url]     || 'metrics-api.librato.com/v1/metrics'
+      @remote_timeout    = options[:remote_timeout] || 10
+      @logger            = options[:logger]         || Logger.new(STDOUT)
       initialize_redis(options)
+    end
+
+    def go!
       establish_redis_connection
-    end
-
-    def start
-      log_message "Metricize server started", :info
-      loop do
-        wait_for_clients_to_send_metrics
-        process_metric_queue
-      end
-    ensure
-      log_message "Metricize server stopped", :warn
-    end
-
-    def send!
       process_metric_queue
     end
 
     private
-
-    def wait_for_clients_to_send_metrics
-      sleep @flush_interval
-    end
 
     def process_metric_queue
       queue = retrieve_queue_contents
@@ -44,25 +28,25 @@ module Metricize
     end
 
     def retrieve_queue_contents
-      log_message "checking queue"
+      log_message "checking... queue_length=#{queue_length = @redis.llen(@queue_name)}", :info
+      return [] unless queue_length > 0
       queue = @redis.lrange(@queue_name, 0, -1)
       queue.map {|metric| JSON.parse(metric, :symbolize_names => true) }
     end
 
     def clear_queue
       log_message "clearing queue"
-      @redis.del @queue_name
+      @redis.del @queue_name if @redis
     end
 
     def store_metrics(data)
-      log_message "remote_data_sent_chars=#{data.to_s.length}", :info
       log_message "remote_data_sent='#{data}'"
       start_time = Time.now
-      RestClient.post("https://#{@username}:#{@password}@#{@remote_url}",
+      RestClient.post("https://#{@username.sub('@','%40')}:#{@password}@#{@remote_url}",
                       data.to_json,
-                      :timeout      => @timeout,
+                      :timeout      => @remote_timeout,
                       :content_type => 'application/json')
-      log_message "remote_request_duration_ms=#{time_delta_ms(start_time)}"
+      log_message "remote_data_sent_chars=#{data.to_s.length}, remote_request_duration_ms=#{time_delta_ms(start_time)}", :info
     end
 
     def add_aggregate_info(metrics)
@@ -120,16 +104,21 @@ module Metricize
       if (range == 0 || bin_width == 0  )
         raise "unable to calculate binning"
       end
-      name = name.gsub('|','.')
+      name = name.gsub('|','.').sub(/\.$/, '')
       bins = (min...max).step(bin_width).to_a
       freqs = bins.map {| bin | values.select{|x| x >= bin && x <= (bin+bin_width) }.count }
       mean = values.inject(:+).to_f / values.size
       mean = ((mean * 10.0).round) / 10.0
-      chart_output = "\n\n#{name}.count=#{values.count}\n#{name}.min=#{values.min}\n#{name}.max=#{values.max}\n#{name}.mean=#{mean}".gsub('..','.')
 
-      chart_data = bins.map!(&:round).zip(freqs)
-
-      chart_output << AsciiCharts::Cartesian.new(chart_data, :bar => true, :hide_zero => true).draw
+      chart_data    = bins.map!(&:round).zip(freqs)
+      chart_options = { :bar       => true,
+                        :title     => "\nHistogram for #{name} at #{Time.now}",
+                        :hide_zero => true }
+      chart_output  = AsciiCharts::Cartesian.new(chart_data, chart_options).draw +
+                     "\n#{name}.count=#{values.count}\n" +
+                       "#{name}.min=#{values.min}\n" +
+                       "#{name}.max=#{values.max}\n" +
+                       "#{name}.mean=#{mean}\n"
       log_message(chart_output, :info)
     rescue => e
       log_message("#{e}: Could not print histogram for #{name} with these input values: #{values}", :error)
