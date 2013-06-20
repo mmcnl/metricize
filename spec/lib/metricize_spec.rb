@@ -3,8 +3,8 @@ require "spec_helper"
 describe Metricize do
   let(:logger) { double.as_null_object }
   let(:forwarder) { Metricize::Forwarder.new( :password => 'api_key',
-                                              :username => 'name@example.com',
-                                              :logger   => logger) }
+                                             :username => 'name@example.com',
+                                             :logger   => logger) }
 
   let(:client) { Metricize::Client.new( :prefix => 'prefix', :logger => logger ) }
 
@@ -74,7 +74,7 @@ describe Metricize do
 
   it "sends all stats in a batch with the same timestamp" do
     client.measure('value1', 5)
-    RestClient.should_receive(:post).with(anything, /measure_time":1234\}/, anything)
+    RestClient.should_receive(:post).with(anything, /measure_time":1234\D/, anything)
     forwarder.go!
   end
 
@@ -111,20 +111,23 @@ describe Metricize do
     client.measure('value1', 10)
     client.measure('value2', 20)
     RestClient.should_receive(:post).with do | _, post_data |
-      expect(post_data).to match( /value1","value":10/)
-      expect(post_data).to match( /value2","value":20/)
+      gauges = JSON.parse(post_data)['gauges']
+      expect(gauges[1]['name']).to eq "prefix.value1"
+      expect(gauges[1]['value']).to eq 10.0
+      expect(gauges[0]['name']).to eq "prefix.value2"
+      expect(gauges[0]['value']).to eq 20.0
     end
     forwarder.go!
   end
 
   it "raises an error when measure is called without a numeric value" do
     expect { client.measure('boom', {}) }.to raise_error(ArgumentError, /no numeric value provided in measure call/)
-    expect { client.measure('boom', 'N') }.to raise_error(ArgumentError, /no numeric value provided in measure call/)
+    expect { client.measure('boom', 'NaN') }.to raise_error(ArgumentError, /no numeric value provided in measure call/)
   end
 
   it "rounds value stats to 4 decimals" do
     client.measure('value1', 1.0/7.0)
-    RestClient.should_receive(:post).with(anything, /value1","value":0.1429\}/, anything)
+    RestClient.should_receive(:post).with(anything, /value":0.1429/, anything)
     forwarder.go!
   end
 
@@ -134,25 +137,29 @@ describe Metricize do
       [4,5,6].each { |value| client.measure('value1', value, :source => 'source1') }
       [1,2,3].each { |value| client.measure('value1', value, :source => 'source2') }
       RestClient.should_receive(:post).with do | url, post_data |
-        expect(post_data).to match( /value1.50e","value":5.0,"source":"source1/ )
-        expect(post_data).to match( /value1.50e","value":2.0,"source":"source2/ )
+        gauges = JSON.parse(post_data)['gauges']
+        expect(gauges).to include("name"=>"prefix.value1.50e", "source"=> "source1", "value"=>5.0)
+        expect(gauges).to include("name"=>"prefix.value1.50e", "source"=> "source2", "value"=>2.0)
       end
       forwarder.go!
     end
 
-    it "asks for forwarder aggregation on the count of value stats" do
+    it "asks for server aggregation on the count of value stats" do
       client.measure('value_stat1', 7)
-      expected_output = /value_stat1.count","value":1,"attributes":\{"source_aggregate":true,"summarize_function":"sum"\}/
-      RestClient.should_receive(:post).with(anything, expected_output, anything)
+      RestClient.should_receive(:post).with do | url, post_data |
+        gauges = JSON.parse(post_data)['gauges']
+        expect(gauges).to include("name"=>"prefix.value_stat1.count", "value"=>1, "attributes"=>{"source_aggregate"=>true, "summarize_function"=>"sum"})
+      end
       forwarder.go!
     end
 
     it "adds min, max, and count" do
       [4,5,6].each { |value| client.measure('value1', value) }
       RestClient.should_receive(:post).with do | url, post_data |
-        expect(post_data).to match( /value1.min","value":4.0/ )
-        expect(post_data).to match( /value1.max","value":6.0/ )
-        expect(post_data).to match( /value1.count","value":3/ )
+        gauges = JSON.parse(post_data)['gauges']
+        expect(gauges).to include("name"=>"prefix.value1.count", "value"=>3, "attributes"=>{"source_aggregate"=>true, "summarize_function"=>"sum"})
+        expect(gauges).to include("name"=>"prefix.value1.max", "value"=>6)
+        expect(gauges).to include("name"=>"prefix.value1.min", "value"=>4)
       end
       forwarder.go!
     end
@@ -161,8 +168,9 @@ describe Metricize do
       (1..4).each { |index| client.measure("value_stat#{index}", 0) }
       (1..7).each { |index| client.increment("counter_stat#{index}") }
       RestClient.should_receive(:post).with do | url, post_data |
-        expect(post_data).to match( /metricize_queue.measurements","value":4/ )
-        expect(post_data).to match( /metricize_queue.counters","value":7/ )
+        gauges = JSON.parse(post_data)['gauges']
+        expect(gauges).to include("name"=>"metricize_queue.measurements", "value"=>4)
+        expect(gauges).to include("name"=>"metricize_queue.counters", "value"=>7)
       end
       forwarder.go!
     end
@@ -171,26 +179,25 @@ describe Metricize do
       (1..20).each { |value| client.measure('value_stat1', value) }
       client.measure('value_stat2', 7)
       RestClient.should_receive(:post).with do | _, post_data |
-        expect(post_data).to match( /value_stat1.25e","value":5.0/ )
-        expect(post_data).to match( /value_stat1.75e","value":15.0/ )
-        expect(post_data).to match( /value_stat1.95e","value":19.0/ )
-        expect(post_data).to match( /value_stat2.25e","value":7.0/ )
+        gauges = JSON.parse(post_data)['gauges']
+        expect(gauges).to include("name"=>"prefix.value_stat1.25e", "value"=>5.0)
+        expect(gauges).to include("name"=>"prefix.value_stat1.50e", "value"=>10.0)
+        expect(gauges).to include("name"=>"prefix.value_stat1.75e", "value"=>15.0)
+        expect(gauges).to include("name"=>"prefix.value_stat1.95e", "value"=>19.0)
+        expect(gauges).to include("name"=>"prefix.value_stat2.95e", "value"=>7.0)
       end
       forwarder.go!
     end
 
     it "logs a histogram for value stats with more than 5 measurements" do
-      [10,10,15,15,15,19].each { |value| client.measure('value_stat1', value) }
       2.times { logger.should_receive(:info) }
-      logger.should_receive(:info) do | output |
-        #3|          *
-        #2| *        *
-        #1| *        *     *
-        #0+------------------
-        #  10 12 13 15 16 18
-        expect(output).to match(/10 12 13 15/)
-      end
-      logger.stub(:info)
+      [10,10,15,15,15,19].each { |value| client.measure('value_stat1', value) }
+      #3|          *
+      #2| *        *
+      #1| *        *     *
+      #0+------------------
+       # 10 12 13 15 16 18
+      logger.should_receive(:info).with(/10 12 13 15 16 18/m)
       forwarder.go!
     end
 
