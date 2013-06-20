@@ -99,16 +99,18 @@ module Metricize
       min = values.min.floor
       max = values.max.ceil
       range = (max - min).to_f
+
       num_bins = [25, values.size].min.to_f
       bin_width = (range/num_bins)
-      if (range == 0 || bin_width == 0  )
-        raise "unable to calculate binning"
-      end
-      name = name.gsub('|','.').sub(/\.$/, '')
+      bin_width = 1 if bin_width == 0
+
       bins = (min...max).step(bin_width).to_a
       freqs = bins.map {| bin | values.select{|x| x >= bin && x <= (bin+bin_width) }.count }
+
       mean = values.inject(:+).to_f / values.size
       mean = ((mean * 10.0).round) / 10.0
+
+      name = name.gsub('|','.').sub(/\.$/, '')
 
       chart_data    = bins.map!(&:round).zip(freqs)
       chart_options = { :bar       => true,
@@ -121,7 +123,7 @@ module Metricize
                        "#{name}.mean=#{mean}\n"
       log_message(chart_output, :info)
     rescue => e
-      log_message("#{e}: Could not print histogram for #{name} with these input values: #{values}", :error)
+      log_message("#{e}: Could not print histogram for #{name} with these input values: #{values.inspect}", :error)
     end
 
     def add_stat_by_key(key, value, suffix = "")

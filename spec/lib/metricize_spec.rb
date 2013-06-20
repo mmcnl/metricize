@@ -207,9 +207,9 @@ describe Metricize do
       forwarder.go!
     end
 
-    it "logs a warning if it can't calculate histogram binning" do
+    it "handles cases where all values are the same" do
       [10,10,10,10,10,10].each { |value| client.measure('value_stat1', value) }
-      logger.should_receive(:error)
+      logger.should_not_receive(:error)
       forwarder.go!
     end
 
