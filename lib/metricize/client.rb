@@ -39,9 +39,8 @@ module Metricize
 
     def push_to_queue(name, value, options)
       data = prepare_metric(name, value, options).to_json
-      start_time = Time.now
       @redis.lpush(@queue_name, data)
-      log_message "redis_data_sent=#{data}, redis_request_duration_ms=#{time_delta_ms(start_time)}"
+      log_message "#{name}=#{value}" + (options[:source] ? ", source=#{options[:source]}" : ''), :info
     end
 
     def build_metric_name(name)
