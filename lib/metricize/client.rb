@@ -40,7 +40,9 @@ module Metricize
     def push_to_queue(name, value, options)
       data = prepare_metric(name, value, options).to_json
       @redis.lpush(@queue_name, data)
-      log_message "#{name}=#{value}" + (options[:source] ? ", source=#{options[:source]}" : ''), :info
+      msg = "#{name.gsub('.', '_')}=#{value}" # splunk chokes on dots in field names
+      msg << ", source=#{options[:source].gsub('.', '_')}" if options[:source]
+      log_message msg, :info
     end
 
     def build_metric_name(name)
