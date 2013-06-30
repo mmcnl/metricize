@@ -41,7 +41,7 @@ module Metricize
       data = prepare_metric(name, value, options).to_json
       @redis.lpush(@queue_name, data)
       msg = "#{name.gsub('.', '_')}=#{value}" # splunk chokes on dots in field names
-      msg << ", source=#{options[:source].gsub('.', '_')}" if options[:source]
+      msg << ", metric_source=#{options[:source].gsub('.', '_')}" if options[:source]
       log_message msg, :info
     end
 
