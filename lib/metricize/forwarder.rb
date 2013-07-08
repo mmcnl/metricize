@@ -129,12 +129,5 @@ module Metricize
       metric
     end
 
-    def calculate_percentile(values, percentile)
-      return values.first if values.size == 1
-      values_sorted = values.sort
-      k = (percentile*(values_sorted.length-1)+1).floor - 1
-      values_sorted[k]
-    end
-
   end
 end
