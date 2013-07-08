@@ -122,6 +122,13 @@ describe Metricize do
     forwarder.go!
   end
 
+  it "logs in splunk format a sampling of metrics" do
+    logger.should_receive(:info).with(/prefix_value1=10.0/m).at_least(5).times
+    100.times { client.measure('value1', 10) }
+    logger.should_receive(:info).with(/prefix_value2=20.0/m).at_most(20).times
+    100.times { client.measure('value2', 20) }
+  end
+
   it "raises an error when measure is called without a numeric value" do
     expect { client.measure('boom', {}) }.to raise_error(ArgumentError, /no numeric value provided in measure call/)
     expect { client.measure('boom', 'NaN') }.to raise_error(ArgumentError, /no numeric value provided in measure call/)
