@@ -19,12 +19,12 @@ module Metricize
     private
 
     def process_metric_queue
-      queue = retrieve_queue_contents
-      return if queue.empty?
-      store_metrics(add_aggregate_info(queue))
-      clear_queue
-    rescue RuntimeError => e
-      log_message "Error: " + e.message, :error
+      with_error_handling do
+        queue = retrieve_queue_contents
+        return if queue.empty?
+        store_metrics(add_aggregate_info(queue))
+        clear_queue
+      end
     end
 
     def retrieve_queue_contents
@@ -81,7 +81,9 @@ module Metricize
         value_groups[key] << metric[:value]
       end
       value_groups.each do |key, values|
-        print_histogram(key, values)
+        with_error_handling do
+          print_histogram(key, values)
+        end
         gauges << add_stat_by_key(key, values.size, '.count').merge(counter_attributes)
         gauges << add_stat_by_key(key, values.max, ".max")
         gauges << add_stat_by_key(key, values.min, ".min")
@@ -118,8 +120,6 @@ module Metricize
                        "#{name}.mean=#{round(values.mean, 2)}\n" +
                        "#{name}.stddev=#{round(values.standard_deviation, 2)}\n"
       log_message(chart_output, :info)
-    rescue => e
-      log_message("#{e}: Could not print histogram for #{name} with these input values: #{values.inspect}", :error)
     end
 
     def add_stat_by_key(key, value, suffix = "")

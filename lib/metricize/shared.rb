@@ -3,8 +3,10 @@ module Metricize
 
     def establish_redis_connection
       log_message "metricize_version=#{VERSION} connecting to Redis at #{@queue_host}:#{@queue_port}", :info
-      @redis = Redis.connect(:host => @queue_host, :port => @queue_port)
-      @redis.ping
+      with_error_handling do
+        @redis = Redis.connect(:host => @queue_host, :port => @queue_port)
+        @redis.ping
+      end
     end
 
     private
@@ -31,6 +33,12 @@ module Metricize
     def round(value, num_places)
       factor = 10.0**num_places
       ((value * factor).round) / factor
+    end
+
+    def with_error_handling
+      yield
+    rescue StandardError => e
+      log_message %Q(#{e.class}:#{e.message}\n#{e.backtrace.join("\n")}), :error
     end
 
   end

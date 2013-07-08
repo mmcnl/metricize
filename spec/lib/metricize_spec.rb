@@ -1,5 +1,7 @@
 require "spec_helper"
 
+class TestError < StandardError; end
+
 describe Metricize do
   let(:logger) { double.as_null_object }
   let(:forwarder) { Metricize::Forwarder.new( :password => 'api_key',
@@ -234,11 +236,23 @@ describe Metricize do
     forwarder.go!
   end
 
-  it "retries sending if it encounters an error" do
+  it "rescues and logs redis errors in client" do
+    Redis.any_instance.stub(:lpush).and_raise(TestError)
+    logger.should_receive(:error).with(/Client.*TestError/)
     client.increment('counter1')
-    RestClient.stub(:post).and_raise(RestClient::Exception)
+  end
+
+  it "rescues and logs redis errors in forwarder" do
+    client.increment('counter1')
+    Redis.any_instance.stub(:lrange).and_raise(TestError)
+    logger.should_receive(:error).with(/Forwarder.*TestError/)
     forwarder.go!
-    RestClient.should_receive(:post)
+  end
+
+  it "rescues and logs errors when printing histograms" do
+    10.times { client.measure('value1', 1.0) }
+    AsciiCharts::Cartesian.any_instance.stub(:draw).and_raise(TestError)
+    logger.should_receive(:error).with(/Forwarder.*TestError/)
     forwarder.go!
   end
 
