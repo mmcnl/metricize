@@ -123,9 +123,11 @@ describe Metricize do
   end
 
   it "logs in splunk format a sampling of metrics" do
-    logger.should_receive(:info).with(/prefix_value1=10.0/m).at_least(5).times
+    srand(1234)
+    logger.should_receive(:info) # ignore initial connection message
+    logger.should_receive(:info).with(/prefix_value1=10.0/m).exactly(9).times
     100.times { client.measure('value1', 10) }
-    logger.should_receive(:info).with(/prefix_value2=20.0/m).at_most(20).times
+    logger.should_receive(:info).with(/prefix_value2=20.0/m).exactly(6).times
     100.times { client.measure('value2', 20) }
   end
 
