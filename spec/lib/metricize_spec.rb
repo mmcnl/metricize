@@ -21,7 +21,7 @@ describe Metricize do
   end
 
   it "provides null object implementations to allow for easily disabling metrics functionality" do
-    expect(Metricize::NullClient).to respond_to(:new, :increment, :measure, :time)
+    expect(Metricize::NullClient).to respond_to(:new, :increment, :measure, :time, :establish_redis_connection)
     expect(Metricize::NullForwarder).to respond_to(:new, :go!)
   end
 
