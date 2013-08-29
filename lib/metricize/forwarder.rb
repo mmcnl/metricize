@@ -9,10 +9,10 @@ module Metricize
       @remote_timeout    = options[:remote_timeout] || 10
       establish_logger(options)
       initialize_redis(options)
+      establish_redis_connection
     end
 
     def go!
-      establish_redis_connection
       process_metric_queue
     end
 
