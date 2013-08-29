@@ -49,13 +49,23 @@ describe Metricize do
     forwarder.go!
   end
 
-  it "clears queue and does not send again after a successful request" do
+  it "clears sent items after a successful request and does not send to remote again if queue is empty" do
     client.increment('stat.name')
     forwarder.go!
     RestClient.should_not_receive(:post)
     forwarder.go!
   end
 
+  it "limits the number of metrics forwarded to the remote in a single request" do
+    forwarder.instance_variable_set(:@max_batch_size, 3)
+    7.times { | n| client.increment('stat.name' + n.to_s) }
+    forwarder.go!
+    expect(forwarder.send(:queue_length)).to eq 4
+    forwarder.go!
+    expect(forwarder.send(:queue_length)).to eq 1
+    forwarder.go!
+    expect(forwarder.send(:queue_length)).to eq 0
+  end
   it "removes special characters and spaces and converts the metric names and sources to dotted decimal snake_case" do
     client.increment(' My UNRULY stat!@#$%^&*\(\) ')
     RestClient.should_receive(:post).with(anything, /my_unruly_stat/, anything)
