@@ -7,10 +7,9 @@ module Metricize
       @username          = options.fetch(:username)
       @remote_url        = options[:remote_url]     || 'metrics-api.librato.com/v1/metrics'
       @remote_timeout    = options[:remote_timeout] || 10
-      @max_batch_size    = options[:max_batch_size] || 5000
+      @batch_size        = options[:batch_size] || 5000
       establish_logger(options)
       initialize_redis(options)
-      establish_redis_connection
     end
 
     def go!
@@ -29,9 +28,9 @@ module Metricize
 
     def lshift_queue
       return [] unless queue_length > 0
-      current_batch = @redis.lrange(@queue_name, 0, @max_batch_size - 1)
+      current_batch = @redis.lrange(@queue_name, 0, @batch_size - 1)
       # ltrim indexes are 0 based and somewhat confusing -- see http://redis.io/commands/ltrim
-      @redis.ltrim(@queue_name, 0, -1-@max_batch_size)
+      @redis.ltrim(@queue_name, 0, -1-@batch_size)
       current_batch.map {|metric| JSON.parse(metric, :symbolize_names => true) }
     end
 

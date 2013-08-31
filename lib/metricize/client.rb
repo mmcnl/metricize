@@ -4,10 +4,9 @@ module Metricize
 
     def initialize(options = {})
       @prefix = options[:prefix]
-      @sampling_ratio = options[:sampling_ratio] || 0.10
+      @log_sampling_ratio = options[:log_sampling_ratio] || 0.10
       establish_logger(options)
       initialize_redis(options)
-      establish_redis_connection
     end
 
     def increment(name, options = {})
@@ -43,7 +42,7 @@ module Metricize
       with_error_handling do
         @redis.lpush(@queue_name, data)
       end
-      return unless rand < @sampling_ratio
+      return unless rand < @log_sampling_ratio
       msg = "#{name.gsub('.', '_')}=#{value}" # splunk chokes on dots in field names
       msg << ", metric_source=#{options[:source].gsub('.', '_')}" if options[:source]
       log_message msg, :info

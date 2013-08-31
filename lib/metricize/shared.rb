@@ -15,6 +15,7 @@ module Metricize
       @queue_host  = options[:queue_host] || '127.0.0.1'
       @queue_port  = options[:queue_port] || 6379
       @queue_name  = options[:queue_name] || 'metricize_queue'
+      establish_redis_connection
     end
 
     def establish_logger(options)

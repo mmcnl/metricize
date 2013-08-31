@@ -8,7 +8,7 @@ describe Metricize do
                                              :username => 'name@example.com',
                                              :logger   => logger) }
 
-  let(:client) { Metricize::Client.new( :prefix => 'prefix', :logger => logger ) }
+  let(:client) { Metricize::Client.new( :prefix => 'prefix', :logger => logger, :log_sampling_ratio => 1.0 ) }
 
   before do
     Timecop.freeze(Time.at(1234))
@@ -57,7 +57,7 @@ describe Metricize do
   end
 
   it "limits the number of metrics forwarded to the remote in a single request" do
-    forwarder.instance_variable_set(:@max_batch_size, 3)
+    forwarder.instance_variable_set(:@batch_size, 3)
     7.times { | n| client.increment('stat.name' + n.to_s) }
     forwarder.go!
     expect(forwarder.send(:queue_length)).to eq 4
@@ -133,8 +133,8 @@ describe Metricize do
   end
 
   it "logs in splunk format a sampling of metrics" do
+    client = Metricize::Client.new( :prefix => 'prefix', :logger => logger, :log_sampling_ratio => 0.10 )
     srand(1234)
-    logger.should_receive(:info) # ignore initial connection message
     logger.should_receive(:info).with(/prefix_value1=10.0/m).exactly(9).times
     100.times { client.measure('value1', 10) }
     logger.should_receive(:info).with(/prefix_value2=20.0/m).exactly(6).times
