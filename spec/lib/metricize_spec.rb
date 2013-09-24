@@ -165,26 +165,6 @@ describe Metricize do
       forwarder.go!
     end
 
-    it "asks for server aggregation on the count of value stats" do
-      client.measure('value_stat1', 7)
-      RestClient.should_receive(:post).with do | url, post_data |
-        gauges = JSON.parse(post_data)['gauges']
-        expect(gauges).to include("name"=>"prefix.value_stat1.count", "value"=>1, "attributes"=>{"source_aggregate"=>true, "summarize_function"=>"sum"})
-      end
-      forwarder.go!
-    end
-
-    it "adds min, max, and count" do
-      [4,5,6].each { |value| client.measure('value1', value) }
-      RestClient.should_receive(:post).with do | url, post_data |
-        gauges = JSON.parse(post_data)['gauges']
-        expect(gauges).to include("name"=>"prefix.value1.count", "value"=>3, "attributes"=>{"source_aggregate"=>true, "summarize_function"=>"sum"})
-        expect(gauges).to include("name"=>"prefix.value1.max", "value"=>6)
-        expect(gauges).to include("name"=>"prefix.value1.min", "value"=>4)
-      end
-      forwarder.go!
-    end
-
     it "adds metadata about the entire batch of stats" do
       (1..4).each { |index| client.measure("value_stat#{index}", 0) }
       (1..7).each { |index| client.increment("counter_stat#{index}") }
@@ -207,9 +187,7 @@ describe Metricize do
       client.measure('value_stat2', 7)
       RestClient.should_receive(:post).with do | _, post_data |
         gauges = JSON.parse(post_data)['gauges']
-        expect(gauges).to include("name"=>"prefix.value_stat1.25e", "value"=>5.0)
         expect(gauges).to include("name"=>"prefix.value_stat1.50e", "value"=>10.0)
-        expect(gauges).to include("name"=>"prefix.value_stat1.75e", "value"=>15.0)
         expect(gauges).to include("name"=>"prefix.value_stat1.95e", "value"=>19.0)
         expect(gauges).to include("name"=>"prefix.value_stat2.95e", "value"=>7.0)
       end

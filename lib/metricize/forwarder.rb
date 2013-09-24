@@ -89,10 +89,7 @@ module Metricize
         with_error_handling do
           print_histogram(key, values)
         end
-        gauges << add_stat_by_key(key, values.size, '.count').merge(counter_attributes)
-        gauges << add_stat_by_key(key, values.max, ".max")
-        gauges << add_stat_by_key(key, values.min, ".min")
-        [0.25, 0.50, 0.75, 0.95].each do |p|
+        [0.50, 0.95].each do |p|
           percentile = values.extend(Stats).calculate_percentile(p)
           gauges << add_stat_by_key(key, percentile, ".#{(p*100).to_i}e")
         end
