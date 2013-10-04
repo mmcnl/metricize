@@ -58,7 +58,6 @@ module Metricize
       counters, measurements = metrics.partition {|metric| metric.fetch(:name) =~ /.count$/ }
       counters = consolidate_counts(counters)
       measurements = add_value_stats(measurements)
-      measurements << add_stat_by_key(@queue_name + '.counters', counters.size)
       { :gauges => counters + measurements, :measure_time => Time.now.to_i }
     end
 
@@ -89,12 +88,12 @@ module Metricize
         with_error_handling do
           print_histogram(key, values)
         end
+        gauges << add_stat_by_key(key, values.size, '.count').merge(counter_attributes)
         [0.50, 0.95].each do |p|
           percentile = values.extend(Stats).calculate_percentile(p)
           gauges << add_stat_by_key(key, percentile, ".#{(p*100).to_i}e")
         end
       end
-      gauges << add_stat_by_key(@queue_name + '.measurements', value_groups.size)
       gauges
     end
 

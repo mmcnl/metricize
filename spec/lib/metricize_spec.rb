@@ -165,13 +165,11 @@ describe Metricize do
       forwarder.go!
     end
 
-    it "adds metadata about the entire batch of stats" do
-      (1..4).each { |index| client.measure("value_stat#{index}", 0) }
-      (1..7).each { |index| client.increment("counter_stat#{index}") }
+    it "adds the count of measurements to gauges" do
+      [4,5,6].each { |value| client.measure('value1', value) }
       RestClient.should_receive(:post).with do | url, post_data |
         gauges = JSON.parse(post_data)['gauges']
-        expect(gauges).to include("name"=>"metricize_queue.measurements", "value"=>4)
-        expect(gauges).to include("name"=>"metricize_queue.counters", "value"=>7)
+        expect(gauges).to include("name"=>"prefix.value1.count", "value"=>3, "attributes"=>{"source_aggregate"=>true, "summarize_function"=>"sum"})
       end
       forwarder.go!
     end
