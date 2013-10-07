@@ -6,8 +6,9 @@ module Metricize
       @password          = options.fetch(:password)
       @username          = options.fetch(:username)
       @remote_url        = options[:remote_url]     || 'metrics-api.librato.com/v1/metrics'
-      @remote_timeout    = options[:remote_timeout] || 10
-      @batch_size        = options[:batch_size] || 5000
+      @remote_timeout    = (options[:remote_timeout] || 12).to_i
+      @remote_requests   = (options[:remote_requests] || 4).to_i
+      @batch_size        = (options[:batch_size] || 250000).to_i
       establish_logger(options)
       initialize_redis(options)
     end
@@ -20,9 +21,11 @@ module Metricize
 
     def process_metric_queue
       with_error_handling do
-        queue = lshift_queue
-        return if queue.empty?
-        store_metrics(add_aggregate_info(queue))
+        @remote_requests.times do |n|
+          batch = lshift_queue
+          return if batch.empty?
+          store_metrics(add_aggregate_info(batch))
+        end
       end
     end
 

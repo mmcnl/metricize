@@ -58,6 +58,7 @@ describe Metricize do
 
   it "limits the number of metrics forwarded to the remote in a single request" do
     forwarder.instance_variable_set(:@batch_size, 3)
+    forwarder.instance_variable_set(:@remote_requests, 1)
     7.times { | n| client.increment('stat.name' + n.to_s) }
     forwarder.go!
     expect(forwarder.send(:queue_length)).to eq 4
