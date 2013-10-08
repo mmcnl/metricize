@@ -33,7 +33,7 @@ describe Metricize do
       expect(first_gauge['name']).to eq "prefix.stat.name.count"
       expect(first_gauge['source']).to eq "my_source"
       expect(first_gauge['attributes']).to eq("source_aggregate" => true, "summarize_function" => "sum")
-      expect(request_params).to eq( :timeout => 10, :content_type => "application/json" )
+      expect(request_params).to eq( :timeout => 12, :content_type => "application/json" )
     end
     forwarder.go!
   end
