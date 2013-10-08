@@ -22,7 +22,7 @@ module Metricize
       raise ArgumentError, "must be invoked with a block to time" unless block_given?
       start_time = Time.now
       block_result = yield
-      measure(name + '.time', time_delta_ms(start_time))
+      measure(name + '.time', time_delta_ms(start_time), options)
       return block_result
     end
 
