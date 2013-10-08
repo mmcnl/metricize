@@ -221,11 +221,12 @@ describe Metricize do
   end
 
   it "times and reports the execution of a block of code in milliseconds" do
-    client.time('my_slow_code') do
+    client.time('my_slow_code', source: 'my_source') do
       Timecop.travel(5) # simulate 5000 milliseconds of runtime
     end
     RestClient.should_receive(:post).with do | _, post_data |
       first_gauge = JSON.parse(post_data)['gauges'].first
+      expect(first_gauge['source']).to eq('my_source')
       expect(first_gauge['name']).to eq('prefix.my_slow_code.time')
       expect(first_gauge['value']).to be_within(0.2).of(5000)
     end
