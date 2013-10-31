@@ -5,8 +5,9 @@ class TestError < StandardError; end
 describe Metricize do
   let(:logger) { double.as_null_object }
   let(:forwarder) { Metricize::Forwarder.new( :password => 'api_key',
-                                             :username => 'name@example.com',
-                                             :logger   => logger) }
+                                              :username => 'name@example.com',
+                                              :batch_sleep => 0,
+                                              :logger   => logger) }
 
   let(:client) { Metricize::Client.new( :prefix => 'prefix', :logger => logger, :log_sampling_ratio => 1.0 ) }
 
